@@ -1,0 +1,117 @@
+; open_atc_unloading.ngc
+; Subroutine: Unload the current tool for ImpactATC
+
+;o<open_atc_unloading> sub
+
+;(DEBUG, ATC: Starting tool UNLOAD sequence)
+
+
+; ================================
+; MACHINE-SPECIFIC CALIBRATION
+; ================================
+; Z reference position when spindle (without nut) just touches top of ATC module
+#<z_reference_spindle_touch> = -62
+
+
+; ================================
+; DERIVED / POSITION PARAMETERS
+; ================================
+#<z_safe_machine>        = 0        ; Safe Z height in machine coordinates
+#<z_engage_offset>       = 16       ; Offset above reference to begin engagement
+#<z_engage_position>     = [#<z_reference_spindle_touch> + #<z_engage_offset>]
+
+#<z_step_initial_engage> = -24      ; First incremental move to contact nut
+#<z_step_full_engage>    = -5       ; Second incremental move to fully seat nut
+
+
+; ================================
+; MOTION + SPINDLE PARAMETERS
+; ================================
+#<feedrate_slow_z>       = 900      ; Slow feed for careful engagement (mm/min)
+#<feedrate_fast_z>       = 2400     ; Fast feed for positioning moves (mm/min)
+
+#<spindle_rpm_settle>    = 300      ; Low RPM for seating/settling
+#<spindle_rpm_unscrew>   = 1100     ; RPM for unscrewing tool
+
+#<dwell_short>           = 0.3      ; Short pause for settling (seconds)
+#<dwell_long>            = 2        ; Time to reach full unscrew speed
+
+
+; ================================
+; INITIAL SETUP
+; ================================
+G17 G90 G40 G49                   ; Standard modal states
+G53 G0 Z#<z_safe_machine>         ; Move to safe Z (machine coordinates)
+
+
+; ================================
+; MOVE TO ATC POSITION
+; ================================
+G53 G0 X101.142 Y-185.572        ; ATC pocket location
+
+
+; ================================
+; APPROACH TOOL HOLDER
+; ================================
+;(DEBUG, ATC: Engaging for unscrew)
+
+G53 G1 Z#<z_engage_position> F#<feedrate_fast_z>   ; Rapid approach above nut
+
+G91                                                 ; Switch to incremental mode
+
+; Step 1: initial engagement with nut
+G1 Z#<z_step_initial_engage> F#<feedrate_slow_z>
+
+
+; ================================
+; SEAT TOOL IN NUT (SPINDLE ROCK)
+; ================================
+; Brief CW/CCW motion helps align nut and seat properly
+
+M4 S#<spindle_rpm_settle>        ; Counterclockwise rotation
+G4 P#<dwell_short>
+M5
+
+M3 S#<spindle_rpm_settle>        ; Clockwise rotation
+G4 P#<dwell_short>
+M5
+
+G4 P#<dwell_short>               ; Final settle pause
+
+
+; ================================
+; FULL ENGAGEMENT
+; ================================
+G1 Z#<z_step_full_engage> F#<feedrate_slow_z>   ; Fully seat nut
+
+
+; ================================
+; UNSCREW TOOL
+; ================================
+M4 S#<spindle_rpm_unscrew>       ; Start CCW rotation to unscrew
+G4 P#<dwell_long>                ; Allow time to reach speed and release
+
+
+; ================================
+; RETRACT
+; ================================
+G90                                ; Back to absolute positioning
+
+;(DEBUG, ATC: Retracting to safe height)
+
+G53 G0 Z#<z_safe_machine>          ; Retract to safe Z
+M5                                 ; Ensure spindle stopped
+
+
+; ================================
+; DEVELOPMENT / MANUAL POSITION
+; ================================
+G53 G0 X40 Y-61.13                ; Temporary position for manual unlock
+                                 ; TODO: remove after development
+
+
+;(DEBUG, ATC: Unload complete)
+
+;o<open_atc_unloading> endsub
+
+M2 ; TODO: remove after full integration
