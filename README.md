@@ -28,9 +28,8 @@ ImpactATC/
 │  └─ README.md       # Notes on usage and configuration
 │
 ├─ hardware/          # User-modifiable hardware components only
-│  ├─ stl/            # 3D-printable parts (e.g. nut holder)
-│  ├─ step/           # Optional reference CAD (non-critical parts only)
-│  └─ README.md       # Scope and limitations of shared hardware
+│  ├─ step/           # Printable / reference CAD (e.g. ER20 nut holder)
+│  └─ README.md       # Scope, print settings and limitations
 │
 ├─ docs/              # Basic setup and integration guidance
 │  └─ setup.md        # Initial setup instructions
@@ -54,7 +53,8 @@ This method provides improved performance over systems relying on friction or li
 ## 🛠 Getting Started
 
 1. Download the required macros from `macros/`  
-2. Print any required parts from `hardware/`  
+2. Print any required parts from `hardware/` — see [`hardware/README.md`](hardware/README.md) for
+   materials and print settings (the ER20 nut holder is PETG, Strength profile, 100% infill)  
 3. Follow setup instructions in `docs/`  
 4. Integrate with your CNC controller  
 
