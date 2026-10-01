@@ -1,0 +1,141 @@
+; =====================================================================
+; impactatc_tool_unloading.ngc - ImpactATC TOOL UNLOADING (unscrew the nut)
+; Controller: LinuxCNC
+;
+; Ships as a STANDALONE program on purpose: open it and run it like any
+; other program to commission the module. Only once it works reliably,
+; convert it to a subroutine for M6 integration - see README.md.
+; =====================================================================
+;
+; !! READ BEFORE FIRST RUN !!
+; The three values marked SET ME are specific to YOUR machine. They ship
+; as 9999 and the macro ABORTS until you replace them. They MUST match
+; impactatc_tool_loading.ngc exactly. See docs/calibration.md.
+;
+; THIS MACRO REQUIRES M4 (SPINDLE REVERSE).
+; Confirm M4 actually reverses your spindle before running this - many
+; router/VFD setups are wired CW-only. Test with a bare M4 S300 first.
+;
+; =====================================================================
+
+;o<impactatc_tool_unloading> sub
+
+;(DEBUG, ATC: Starting tool UNLOAD sequence)
+
+
+; ================================
+; MACHINE-SPECIFIC CALIBRATION - SET ME
+; ================================
+; These MUST match impactatc_tool_loading.ngc exactly.
+#<z_reference>     = 9999       ; SET ME - spindle without nut touching top of module
+#<pocket_x>        = 9999       ; SET ME
+#<pocket_y>        = 9999       ; SET ME
+
+; Guard - refuse to run until the calibration values have been set
+o100 if [[#<z_reference> EQ 9999] OR [#<pocket_x> EQ 9999] OR [#<pocket_y> EQ 9999]]
+    (ABORT, ATC ERROR: z_reference / pocket_x / pocket_y not set in impactatc_tool_unloading.ngc)
+o100 endif
+
+
+; ================================
+; DERIVED POSITIONS
+; ================================
+#<z_safe>          = 0          ; Safe Z in machine coordinates
+#<z_engage_offset> = 16         ; Start engagement this far above the reference
+#<z_engage>        = [#<z_reference> + #<z_engage_offset>]
+#<z_nut_contact>   = -24        ; INCREMENTAL - first step, down onto the nut
+#<z_nut_seat>      = -5         ; INCREMENTAL - second step, fully seat the nut
+
+
+; ================================
+; SPINDLE + FEED PARAMETERS
+; ================================
+#<rpm_settle>      = 300        ; Gentle CW/CCW rock to seat the nut holder
+
+; Unscrew RPM is DELIBERATELY HIGHER than the 1100 used to tighten.
+; A nut tightened at 1100 rpm can work itself tighter during cutting, so
+; unscrewing at the same speed does not reliably break it loose. 1250
+; gives the headroom to release those tools.
+; Do not lower this to match the tightening RPM.
+#<rpm_unscrew>     = 1250
+
+#<feed_slow_z>     = 900        ; Z feed while engaging the nut (mm/min)
+#<feed_fast_z>     = 2400       ; Z feed for positioning moves (mm/min)
+
+#<dwell_settle>    = 0.3        ; Short pause during the seating rock
+#<dwell_unscrew>   = 2.0        ; Time at unscrewing speed
+
+
+; ================================
+; INITIAL SETUP
+; ================================
+G17 G90 G40 G49                 ; Plane, absolute, cutter comp off, TLO off
+G53 G0 Z#<z_safe>               ; Retract to safe Z first
+
+
+; ================================
+; MOVE TO ATC POSITION
+; ================================
+G53 G0 X#<pocket_x> Y#<pocket_y>    ; Move over the pocket
+
+
+; ================================
+; APPROACH THE NUT
+; ================================
+;(DEBUG, ATC: Engaging for unscrew)
+
+G53 G1 Z#<z_engage> F#<feed_fast_z> ; Descend to just above the nut
+
+G91                             ; ---- INCREMENTAL from here ----
+
+G1 Z#<z_nut_contact> F#<feed_slow_z> ; Lower onto the nut
+
+
+; ================================
+; SEAT THE NUT IN THE HOLDER (SPINDLE ROCK)
+; ================================
+; A brief rock either way lets the holder drop onto the nut flats
+; instead of sitting on top of them.
+
+M4 S#<rpm_settle>               ; Nudge CCW
+G4 P#<dwell_settle>
+M5
+
+M3 S#<rpm_settle>               ; Nudge CW
+G4 P#<dwell_settle>
+M5
+
+G4 P#<dwell_settle>             ; Let it settle
+
+
+; ================================
+; FULLY ENGAGE, THEN UNSCREW
+; ================================
+G1 Z#<z_nut_seat> F#<feed_slow_z>   ; Second step, seat the nut fully
+
+M4 S#<rpm_unscrew>              ; Spin CCW to unscrew
+G4 P#<dwell_unscrew>            ; Reach speed and release
+
+
+; ================================
+; RETRACT
+; ================================
+; NOTE: the spindle is deliberately left turning CCW through the retract.
+; This holds the nut down in the changer as the spindle lifts away from
+; it. Do not move M5 above the retract - stopping the spindle first can
+; let the nut lift with the spindle instead of staying in the module.
+
+G90                             ; ---- ABSOLUTE again ----
+
+;(DEBUG, ATC: Retracting to safe height)
+
+G53 G0 Z#<z_safe>               ; Retract, spindle STILL TURNING CCW (intentional)
+M5                              ; Only now stop the spindle
+
+; Nut and tool are now left in the changer, spindle empty.
+
+;(DEBUG, ATC: Unload complete)
+
+;o<impactatc_tool_unloading> endsub
+
+M2  ; Standalone program end - remove when converting to a subroutine

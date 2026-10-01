@@ -1,0 +1,98 @@
+; =====================================================================
+; impactatc_check_unloaded.ngc - verify the spindle is empty after an UNLOAD
+; Controller: LinuxCNC          OPTIONAL - needs a through-beam sensor
+;
+; Uses a through-beam (fork) sensor, developed with an Autonics BUP-50.
+; Ships as a STANDALONE program like the load/unload macros: run it with
+; an empty spindle to commission the sensor, then convert it to a
+; subroutine and call it straight after the unload - see README.md.
+; =====================================================================
+;
+; Motion: approach beside the beam at safe Z, lower to sensor height,
+; advance in X+ into the beam, read it, retract in X- and return to
+; safe Z.
+;
+; Includes a sensor self-check: beside the beam, before advancing, the
+; beam must read CLEAR. This catches a blocked sensor - for example an
+; aluminium chip stuck in the fork - before its reading is trusted. A
+; tool that failed to unscrew is then caught when the spindle advances
+; into the beam.
+;
+; Known limitation: a dead sensor (stuck at "clear") cannot be detected
+; here, because "clear" is the expected answer. The load check catches
+; it on the next load.
+;
+; Sensor input: wired in HAL to motion.digital-in-00, read here with
+; M66 P0 L0, result in #5399. Set #<beam_broken_val> to the value
+; #5399 shows when the beam is BROKEN - confirm it in Halshow first.
+; =====================================================================
+
+;o<impactatc_check_unloaded> sub
+
+;(DEBUG, ATC: Checking spindle is empty)
+
+
+; ================================
+; MACHINE-SPECIFIC CALIBRATION - SET ME
+; ================================
+; Use the SAME values as in impactatc_check_loaded.ngc.
+#<sensor_x>        = 9999       ; SET ME - approach X beside the beam, machine coordinates
+#<beam_x>          = 9999       ; SET ME - X where a tool would sit in the beam, machine coordinates
+#<sensor_y>        = 9999       ; SET ME - sensor Y, machine coordinates
+#<z_check>         = 9999       ; SET ME - machine Z where your SHORTEST tool would break the beam
+#<beam_broken_val> = 1          ; #5399 when the beam is broken - set 0 if your input reads inverted
+
+; Guard - refuse to run until the sensor position has been set
+o5 if [[#<sensor_x> EQ 9999] OR [#<beam_x> EQ 9999] OR [#<sensor_y> EQ 9999] OR [#<z_check> EQ 9999]]
+    (ABORT, ATC ERROR: sensor position not set in impactatc_check_unloaded.ngc)
+o5 endif
+
+
+; ================================
+; PARAMETERS
+; ================================
+#<z_safe>          = 0          ; Safe Z for approach and retract
+#<feed_advance>    = 1200       ; Feed into and out of the sensor (mm/min)
+#<settle_time>     = 0.2        ; Dwell before reading the sensor (seconds)
+
+
+; ================================
+; SEQUENCE
+; ================================
+G90
+G53 G0 Z#<z_safe>
+G53 G0 Y#<sensor_y>
+G53 G0 X#<sensor_x>
+
+G53 G0 Z#<z_check>              ; Lower beside the beam
+
+; ---- Sensor self-check ----
+; Nothing is in the beam yet, so it must read clear. If it reads
+; broken here, the sensor is blocked by a chip or faulty. Do not trust it.
+G4 P#<settle_time>
+M66 P0 L0
+o10 if [#5399 EQ #<beam_broken_val>]
+    G53 G0 Z#<z_safe>
+    (ABORT, ATC ERROR: beam blocked before check - chip in sensor or sensor fault)
+o10 endif
+
+; ---- Empty-spindle check ----
+; Advance in X+ into the beam. It must stay clear. If it breaks, the
+; tool failed to unscrew and is still in the spindle.
+G53 G1 X#<beam_x> F#<feed_advance>
+G4 P#<settle_time>
+M66 P0 L0
+
+; Retract in X- to the approach position, then back to safe Z
+G53 G1 X#<sensor_x> F#<feed_advance>
+G53 G0 Z#<z_safe>
+
+o20 if [#5399 EQ #<beam_broken_val>]
+    (ABORT, ATC ERROR: tool still in spindle after unloading)
+o20 endif
+
+;(DEBUG, ATC: Spindle confirmed empty)
+
+;o<impactatc_check_unloaded> endsub
+
+M2  ; Standalone program end - remove when converting to a subroutine

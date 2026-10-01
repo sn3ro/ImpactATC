@@ -1,0 +1,22 @@
+; =====================================================================
+; impactatc_m6_after_change.ngc - YOUR hook, run after every tool change
+; Controller: LinuxCNC          Part of the ImpactATC M6 integration
+;
+; Called at the end of every successful M6 that leaves a tool in the
+; spindle, with LinuxCNC's current tool already set to the new tool
+; (#<_current_tool>) and the spindle stopped at safe Z.
+;
+; Empty by default. This is the place for tool-length measurement on a
+; tool setter. Re-measuring after each ATC load is recommended: the
+; seated depth of the collet can vary slightly between clamps.
+;
+; If you add a measurement, write the result into the tool table
+; (G10 L1 P#<_current_tool> Z...) and leave G43 to your CAM program,
+; which normally issues G43 H.. straight after M6.
+; =====================================================================
+
+o<impactatc_m6_after_change> sub
+
+; ---- add your tool-length measurement here ----
+
+o<impactatc_m6_after_change> endsub

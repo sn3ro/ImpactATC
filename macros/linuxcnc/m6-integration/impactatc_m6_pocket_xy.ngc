@@ -1,0 +1,44 @@
+; =====================================================================
+; impactatc_m6_pocket_xy.ngc - look up the XY of an ATC pocket
+; Controller: LinuxCNC          Part of the ImpactATC M6 integration
+;
+; Call:    o<impactatc_m6_pocket_xy> call [pocket]
+; Returns: #<_atc_px>, #<_atc_py>  (machine coordinates)
+;
+; No motion. ABORTS if the pocket is not 61-66 or its coordinates are
+; still 9999 - a missing module must stop the machine, never send the
+; spindle somewhere else to run the cycle.
+; =====================================================================
+
+o<impactatc_m6_pocket_xy> sub
+
+#<pocket> = #1
+#<_atc_px> = 9999
+#<_atc_py> = 9999
+
+o10 if [#<pocket> EQ 61]
+    #<_atc_px> = #<_atc_pocket_61_x>
+    #<_atc_py> = #<_atc_pocket_61_y>
+o10 elseif [#<pocket> EQ 62]
+    #<_atc_px> = #<_atc_pocket_62_x>
+    #<_atc_py> = #<_atc_pocket_62_y>
+o10 elseif [#<pocket> EQ 63]
+    #<_atc_px> = #<_atc_pocket_63_x>
+    #<_atc_py> = #<_atc_pocket_63_y>
+o10 elseif [#<pocket> EQ 64]
+    #<_atc_px> = #<_atc_pocket_64_x>
+    #<_atc_py> = #<_atc_pocket_64_y>
+o10 elseif [#<pocket> EQ 65]
+    #<_atc_px> = #<_atc_pocket_65_x>
+    #<_atc_py> = #<_atc_pocket_65_y>
+o10 elseif [#<pocket> EQ 66]
+    #<_atc_px> = #<_atc_pocket_66_x>
+    #<_atc_py> = #<_atc_pocket_66_y>
+o10 endif
+
+o20 if [[#<_atc_px> EQ 9999] OR [#<_atc_py> EQ 9999]]
+    (DEBUG, ATC ERROR: no coordinates for ATC pocket #<pocket>)
+    (ABORT, ATC ERROR: ATC pocket not configured - check tool table P and impactatc_m6_config.ngc)
+o20 endif
+
+o<impactatc_m6_pocket_xy> endsub

@@ -1,0 +1,66 @@
+; =====================================================================
+; impactatc_m6_check.ngc - confirm the spindle state with the beam sensor
+; Controller: LinuxCNC          Part of the ImpactATC M6 integration
+;
+; Call:    o<impactatc_m6_check> call [expect]
+;            expect = 1 : a tool MUST be in the spindle (after a load)
+;            expect = 0 : the spindle MUST be empty     (after an unload)
+;
+; Same sequence as the standalone ../impactatc_check_loaded.ngc and
+; ../impactatc_check_unloaded.ngc, with values from impactatc_m6_config.ngc.
+; Does nothing when #<_atc_use_sensor> = 0.
+;
+; Motion: approach beside the beam at safe Z, lower to sensor height,
+; self-check (beam must read clear), advance in X+ into the beam, read
+; it, retract in X- and return to safe Z. Any failure ABORTS with the
+; spindle stopped at safe Z.
+;
+; Known limitation: a dead sensor stuck at "clear" passes the empty
+; check; the next loaded check catches it.
+; =====================================================================
+
+o<impactatc_m6_check> sub
+
+o1 if [#<_atc_use_sensor> EQ 0]
+    o<impactatc_m6_check> return
+o1 endif
+
+#<expect> = #1
+
+o5 if [[#<_atc_sensor_x> EQ 9999] OR [#<_atc_beam_x> EQ 9999] OR [#<_atc_sensor_y> EQ 9999] OR [#<_atc_z_check> EQ 9999]]
+    (ABORT, ATC ERROR: sensor position not set in impactatc_m6_config.ngc)
+o5 endif
+
+#<feed_advance> = 1200          ; Feed into and out of the sensor (mm/min)
+#<settle_time>  = 0.2           ; Dwell before reading the sensor (seconds)
+
+G90
+G53 G0 Z#<_atc_z_safe>
+G53 G0 Y#<_atc_sensor_y>
+G53 G0 X#<_atc_sensor_x>
+G53 G0 Z#<_atc_z_check>         ; Lower beside the beam, nothing in it yet
+
+; ---- Sensor self-check: beside the beam it must read clear ----
+G4 P#<settle_time>
+M66 P#<_atc_sensor_input> L0
+o10 if [#5399 EQ #<_atc_beam_broken_val>]
+    G53 G0 Z#<_atc_z_safe>
+    (ABORT, ATC ERROR: beam blocked before check - chip in sensor or sensor fault)
+o10 endif
+
+; ---- Advance into the beam and read it ----
+G53 G1 X#<_atc_beam_x> F#<feed_advance>
+G4 P#<settle_time>
+M66 P#<_atc_sensor_input> L0
+#<broken> = [#5399 EQ #<_atc_beam_broken_val>]
+
+G53 G1 X#<_atc_sensor_x> F#<feed_advance>
+G53 G0 Z#<_atc_z_safe>
+
+o20 if [[#<expect> EQ 1] AND [#<broken> EQ 0]]
+    (ABORT, ATC ERROR: no tool detected in spindle after loading)
+o20 elseif [[#<expect> EQ 0] AND [#<broken> EQ 1]]
+    (ABORT, ATC ERROR: tool still in spindle after unloading)
+o20 endif
+
+o<impactatc_m6_check> endsub

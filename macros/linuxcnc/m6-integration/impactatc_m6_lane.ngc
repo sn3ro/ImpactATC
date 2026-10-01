@@ -1,0 +1,31 @@
+; =====================================================================
+; impactatc_m6_lane.ngc - travel to and from the modules along the safe lane
+; Controller: LinuxCNC          Part of the ImpactATC M6 integration
+;
+; Call:    o<impactatc_m6_lane> call [0]               ; up to safe Z, onto the lane
+;          o<impactatc_m6_lane> call [1] [x] [y]       ; along the lane, then in over (x, y)
+;
+; Always use [0] before [1]: [1] assumes the spindle is at safe Z on the lane.
+; =====================================================================
+
+o<impactatc_m6_lane> sub
+
+G90
+
+o10 if [#1 EQ 0]
+    G53 G0 Z#<_atc_z_safe>
+    o20 if [#<_atc_lane_axis> EQ 0]
+        G53 G0 Y#<_atc_lane>        ; Modules along X: lane is a Y
+    o20 else
+        G53 G0 X#<_atc_lane>        ; Modules along Y: lane is an X
+    o20 endif
+o10 else
+    o30 if [#<_atc_lane_axis> EQ 0]
+        G53 G0 X#2                  ; Along the lane to the module
+    o30 else
+        G53 G0 Y#3
+    o30 endif
+    G53 G0 X#2 Y#3                  ; In over the pocket
+o10 endif
+
+o<impactatc_m6_lane> endsub

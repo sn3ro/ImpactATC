@@ -1,0 +1,77 @@
+; =====================================================================
+; impactatc_m6_unload.ngc - ImpactATC TOOL UNLOADING, subroutine form
+; Controller: LinuxCNC          Part of the ImpactATC M6 integration
+;
+; Call:    o<impactatc_m6_unload> call [pocket_x] [pocket_y]
+;
+; Same sequence and values as the standalone ../impactatc_tool_unloading.ngc.
+; Machine values come from impactatc_m6_config.ngc - do not set them here.
+; The speeds, feeds and depths below are the production configuration;
+; see docs/parameters.md before changing any of them, and change the
+; standalone macro to match.
+;
+; REQUIRES M4 (SPINDLE REVERSE).
+; =====================================================================
+
+o<impactatc_m6_unload> sub
+
+o100 if [[#<_atc_z_reference> EQ 9999] OR [#1 EQ 9999] OR [#2 EQ 9999]]
+    (ABORT, ATC ERROR: z_reference or pocket XY not set - see impactatc_m6_config.ngc)
+o100 endif
+
+; ---- Positions ----
+#<z_engage_offset> = 16         ; Start engagement this far above the reference
+#<z_engage>        = [#<_atc_z_reference> + #<z_engage_offset>]
+#<z_nut_contact>   = -24        ; INCREMENTAL - first step, down onto the nut
+#<z_nut_seat>      = -5         ; INCREMENTAL - second step, fully seat the nut
+
+; ---- Production parameters ----
+#<rpm_settle>      = 300        ; Gentle CW/CCW rock to seat the nut holder
+
+; Unscrew RPM is DELIBERATELY HIGHER than the 1100 used to tighten.
+; A nut tightened at 1100 rpm can work itself tighter during cutting, so
+; unscrewing at the same speed does not reliably break it loose.
+; Do not lower this to match the tightening RPM.
+#<rpm_unscrew>     = 1250
+
+#<feed_slow_z>     = 900        ; Z feed while engaging the nut (mm/min)
+#<feed_fast_z>     = 2400       ; Z feed for positioning moves (mm/min)
+#<dwell_settle>    = 0.3        ; Short pause during the seating rock
+#<dwell_unscrew>   = 2.0        ; Time at unscrewing speed
+
+G17 G90 G40 G49
+G53 G0 Z#<_atc_z_safe>
+G53 G0 X#1 Y#2                  ; Over the pocket (already there when called from M6)
+
+G53 G1 Z#<z_engage> F#<feed_fast_z> ; Descend to just above the nut
+
+G91                             ; ---- INCREMENTAL from here ----
+
+G1 Z#<z_nut_contact> F#<feed_slow_z> ; Lower onto the nut
+
+; ---- Seat the nut in the holder ----
+M4 S#<rpm_settle>               ; Nudge CCW
+G4 P#<dwell_settle>
+M5
+
+M3 S#<rpm_settle>               ; Nudge CW
+G4 P#<dwell_settle>
+M5
+
+G4 P#<dwell_settle>             ; Let it settle
+
+; ---- Fully engage, then unscrew ----
+G1 Z#<z_nut_seat> F#<feed_slow_z>   ; Second step, seat the nut fully
+
+M4 S#<rpm_unscrew>              ; Spin CCW to unscrew
+G4 P#<dwell_unscrew>
+
+G90                             ; ---- ABSOLUTE again ----
+
+; NOTE: the spindle is deliberately left turning CCW through the retract.
+; This holds the nut down in the changer as the spindle lifts away from
+; it. Do not move M5 above the retract.
+G53 G0 Z#<_atc_z_safe>          ; Retract, spindle STILL TURNING CCW (intentional)
+M5                              ; Only now stop the spindle
+
+o<impactatc_m6_unload> endsub

@@ -1,0 +1,169 @@
+; =====================================================================
+; impactatc_m6.ngc - ImpactATC tool change, remapped onto M6
+; Controller: LinuxCNC          STATUS: FOR TESTING - see README.md
+;
+; INI:  REMAP=M6 modalgroup=6 prolog=change_prolog ngc=impactatc_m6 epilog=change_epilog
+;
+; Tool numbering - the P (pocket) column of the tool table:
+;   P 1-60  : manual tool, changed by hand at the manual change position
+;   P 61-66 : tool lives in that ImpactATC module
+; Several tools may share a module number, but only one can physically be
+; in it. Keep the tool table true to what is in each module.
+;
+; Four cases, decided from the current and requested pockets:
+;   1. manual -> manual : manual change
+;   2. manual -> ATC    : manual removal (skipped if spindle empty), ATC load
+;   3. ATC -> manual    : ATC unload, manual insert (skipped for T0)
+;   4. ATC -> ATC       : ATC unload, ATC load
+;
+; Machine values: impactatc_m6_config.ngc. Nothing to edit in this file.
+;
+; Any ABORT leaves LinuxCNC's tool number possibly wrong. Fix the physical
+; state, then set the truth with M61 Q<tool> (M61 Q0 = spindle empty).
+; =====================================================================
+
+o<impactatc_m6> sub
+
+; The GUI preview runs this too. Never move or pause in preview.
+o1 if [#<_task> EQ 0]
+    o<impactatc_m6> return [1]
+o1 endif
+
+o<impactatc_m6_config> call
+
+#<tool>         = #<_selected_tool>
+#<pocket>       = #<_selected_pocket>
+#<cur_tool>     = #<_current_tool>
+#<cur_pocket>   = #<_current_pocket>
+#<was_absolute> = #<_absolute>
+#<was_feed>     = #<_feed>
+
+; Same tool requested - nothing to do
+o2 if [#<cur_tool> EQ #<tool>]
+    o<impactatc_m6> return [1]
+o2 endif
+
+#<cur_atc> = [#<cur_pocket> GT 60]
+#<new_atc> = [#<pocket> GT 60]
+
+;(DEBUG, ATC: T#<cur_tool> P#<cur_pocket> -> T#<tool> P#<pocket>)
+
+
+; ================================
+; CHECK EVERYTHING BEFORE ANYTHING MOVES
+; ================================
+o3 if [[#<_atc_z_reference> EQ 9999] OR [#<_atc_lane> EQ 9999] OR [#<_atc_manual_x> EQ 9999] OR [#<_atc_manual_y> EQ 9999]]
+    (ABORT, ATC ERROR: z_reference / lane / manual change position not set in impactatc_m6_config.ngc)
+o3 endif
+
+; Unloading into a module and loading from the same module would just
+; reload the tool that came out - LinuxCNC would then hold the wrong
+; tool length. Refuse.
+o4 if [[#<cur_atc> EQ 1] AND [#<new_atc> EQ 1] AND [#<cur_pocket> EQ #<pocket>]]
+    (ABORT, ATC ERROR: current and new tool share the same ATC module - fix the tool table or change by hand)
+o4 endif
+
+; Look up both pockets now, so a missing one aborts before the old tool
+; is unloaded rather than after.
+o5 if [#<cur_atc> EQ 1]
+    o<impactatc_m6_pocket_xy> call [#<cur_pocket>]
+    #<cur_x> = #<_atc_px>
+    #<cur_y> = #<_atc_py>
+o5 endif
+o6 if [#<new_atc> EQ 1]
+    o<impactatc_m6_pocket_xy> call [#<pocket>]
+    #<new_x> = #<_atc_px>
+    #<new_y> = #<_atc_py>
+o6 endif
+
+
+; ================================
+; START
+; ================================
+M5                              ; Spindle off - never arrive at the changer spinning
+M9                              ; Coolant off
+G90
+
+
+o100 if [[#<cur_atc> EQ 0] AND [#<new_atc> EQ 0]]
+    ; ---------------- 1. manual -> manual ----------------
+    G53 G0 Z#<_atc_manual_z>
+    G53 G0 X#<_atc_manual_x> Y#<_atc_manual_y>
+    G53 G0 Z#<_atc_manual_z>
+    M6                          ; Builtin manual change
+
+
+o100 elseif [[#<cur_atc> EQ 0] AND [#<new_atc> EQ 1]]
+    ; ---------------- 2. manual -> ATC ----------------
+    o110 if [#<cur_tool> NE 0]
+        G53 G0 Z#<_atc_manual_z>
+        G53 G0 X#<_atc_manual_x> Y#<_atc_manual_y>
+        G53 G0 Z#<_atc_manual_z>
+        (MSG, ATC: REMOVE the tool and nut - leave the spindle EMPTY - then confirm the tool change)
+        M6                      ; Builtin manual change - operator empties the spindle
+    o110 endif
+
+    o<impactatc_m6_lane> call [0]
+    o<impactatc_m6_cover> call [1]
+    o<impactatc_m6_lane> call [1] [#<new_x>] [#<new_y>]
+    o<impactatc_m6_load> call [#<new_x>] [#<new_y>]
+    M61 Q#<tool>
+    o<impactatc_m6_check> call [1]
+    o<impactatc_m6_lane> call [0]
+    o<impactatc_m6_cover> call [0]
+
+
+o100 elseif [[#<cur_atc> EQ 1] AND [#<new_atc> EQ 0]]
+    ; ---------------- 3. ATC -> manual ----------------
+    o<impactatc_m6_lane> call [0]
+    o<impactatc_m6_cover> call [1]
+    o<impactatc_m6_lane> call [1] [#<cur_x>] [#<cur_y>]
+    o<impactatc_m6_unload> call [#<cur_x>] [#<cur_y>]
+    o<impactatc_m6_check> call [0]
+    o<impactatc_m6_lane> call [0]
+    o<impactatc_m6_cover> call [0]
+
+    o120 if [#<tool> NE 0]
+        G53 G0 Z#<_atc_manual_z>
+        G53 G0 X#<_atc_manual_x> Y#<_atc_manual_y>
+        G53 G0 Z#<_atc_manual_z>
+        M6                      ; Builtin manual change - operator inserts the new tool
+    o120 else
+        M61 Q0                  ; T0 requested - spindle stays empty
+    o120 endif
+
+
+o100 else
+    ; ---------------- 4. ATC -> ATC ----------------
+    o<impactatc_m6_lane> call [0]
+    o<impactatc_m6_cover> call [1]
+    o<impactatc_m6_lane> call [1] [#<cur_x>] [#<cur_y>]
+    o<impactatc_m6_unload> call [#<cur_x>] [#<cur_y>]
+    o<impactatc_m6_check> call [0]
+
+    o<impactatc_m6_lane> call [0]
+    o<impactatc_m6_lane> call [1] [#<new_x>] [#<new_y>]
+    o<impactatc_m6_load> call [#<new_x>] [#<new_y>]
+    M61 Q#<tool>
+    o<impactatc_m6_check> call [1]
+    o<impactatc_m6_lane> call [0]
+    o<impactatc_m6_cover> call [0]
+o100 endif
+
+
+; ================================
+; FINISH
+; ================================
+o200 if [#<tool> NE 0]
+    o<impactatc_m6_after_change> call
+o200 endif
+
+; Hand back the distance mode and feed the program was using.
+; The spindle is left STOPPED and tool length offset is NOT applied:
+; the program must restart the spindle and issue G43 H.. after M6.
+o210 if [#<was_absolute> EQ 0]
+    G91
+o210 endif
+F#<was_feed>
+
+o<impactatc_m6> endsub [1]

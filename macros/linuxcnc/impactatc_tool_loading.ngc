@@ -1,0 +1,118 @@
+; =====================================================================
+; impactatc_tool_loading.ngc - ImpactATC TOOL LOADING (screw the nut on)
+; Controller: LinuxCNC
+;
+; Ships as a STANDALONE program on purpose: open it and run it like any
+; other program to commission the module. Only once it works reliably,
+; convert it to a subroutine for M6 integration - see README.md.
+; =====================================================================
+;
+; !! READ BEFORE FIRST RUN !!
+; The three values marked SET ME are specific to YOUR machine. They ship
+; as 9999 and the macro ABORTS until you replace them. Use the SAME
+; values in impactatc_tool_unloading.ngc. See docs/calibration.md.
+;
+; =====================================================================
+
+;o<impactatc_tool_loading> sub
+
+;(DEBUG, ATC: Starting tool LOAD sequence)
+
+
+; ================================
+; MACHINE-SPECIFIC CALIBRATION - SET ME
+; ================================
+; Z reference: spindle WITHOUT a collet nut fitted, just touching the
+; top face of the ImpactATC module, in machine coordinates.
+#<z_reference>     = 9999       ; SET ME - about -62 on the development machine
+
+; XY of the ATC pocket centre, machine coordinates.
+#<pocket_x>        = 9999       ; SET ME
+#<pocket_y>        = 9999       ; SET ME
+
+; Guard - refuse to run until the calibration values have been set
+o100 if [[#<z_reference> EQ 9999] OR [#<pocket_x> EQ 9999] OR [#<pocket_y> EQ 9999]]
+    (ABORT, ATC ERROR: z_reference / pocket_x / pocket_y not set in impactatc_tool_loading.ngc)
+o100 endif
+
+
+; ================================
+; DERIVED POSITIONS
+; ================================
+#<z_safe>          = 0          ; Safe Z in machine coordinates
+#<z_engage_offset> = 16         ; Start engagement this far above the reference
+#<z_engage>        = [#<z_reference> + #<z_engage_offset>]
+#<z_nut_thread>    = -31        ; INCREMENTAL plunge that threads the nut on
+
+
+; ================================
+; SPINDLE + FEED PARAMETERS
+; ================================
+#<rpm_engage>      = 900        ; Low RPM while threading the nut on
+
+; Tightening RPM. The matching unload macro unscrews at a HIGHER RPM (1250)
+; on purpose - see the note in impactatc_tool_unloading.ngc. If you raise
+; this value, raise the unscrew RPM to keep that margin.
+#<rpm_tighten>     = 1100       ; Final tightening speed -> approx 35 Nm
+
+#<feed_slow_z>     = 1000       ; Z feed while engaging the nut (mm/min)
+#<feed_fast_z>     = 2400       ; Z feed for positioning moves (mm/min)
+
+#<dwell_tighten>   = 2.0        ; Time at tightening speed (seconds)
+#<dwell_stop>      = 1.0        ; Time for the spindle to come to rest
+
+
+; ================================
+; INITIAL SETUP
+; ================================
+G17 G90 G40 G49                 ; Plane, absolute, cutter comp off, TLO off
+G53 G0 Z#<z_safe>               ; Retract to safe Z first
+
+
+; ================================
+; MOVE TO ATC POSITION
+; ================================
+G53 G0 X#<pocket_x> Y#<pocket_y>    ; Move over the pocket
+
+
+; ================================
+; APPROACH AND THREAD THE NUT ON
+; ================================
+;(DEBUG, ATC: Engaging for screw)
+
+G53 G1 Z#<z_engage> F#<feed_fast_z> ; Descend to just above the nut
+
+G91                             ; ---- INCREMENTAL from here ----
+
+M3 S#<rpm_engage>               ; Spin CW (threading direction), slow
+G1 Z#<z_nut_thread> F#<feed_slow_z>  ; Lower to thread the nut on
+
+
+; ================================
+; TIGHTEN
+; ================================
+;(DEBUG, ATC: Locking nut - spinning to tighten)
+
+M3 S#<rpm_tighten>              ; Raise to tightening speed
+G4 P#<dwell_tighten>            ; Let the impact mechanism do its work
+
+M5                              ; Stop spindle
+G4 P#<dwell_stop>               ; Wait for it to actually stop
+
+
+; ================================
+; RETRACT
+; ================================
+G90                             ; ---- ABSOLUTE again ----
+
+;(DEBUG, ATC: Retracting to safe height)
+
+G53 G0 Z#<z_safe>               ; Retract
+
+; Tool is now locked in the spindle.
+
+;(DEBUG, ATC: Load complete)
+
+;o<impactatc_tool_loading> endsub
+
+M2  ; Standalone program end - remove when converting to a subroutine

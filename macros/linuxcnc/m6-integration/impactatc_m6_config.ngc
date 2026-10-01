@@ -1,0 +1,81 @@
+; =====================================================================
+; impactatc_m6_config.ngc - ImpactATC M6 integration: YOUR MACHINE'S VALUES
+; Controller: LinuxCNC
+;
+; This is the ONLY file in this folder you should need to edit.
+; Every other file reads its machine-specific values from here, so the
+; load and unload sequences can never disagree about the Z reference.
+;
+; All values are MACHINE coordinates (G53). Anything left at 9999 is
+; treated as "not set": the tool change ABORTS rather than guess.
+; Measure them as described in docs/calibration.md.
+; =====================================================================
+
+o<impactatc_m6_config> sub
+
+
+; ================================
+; ATC MODULES - SET ME
+; ================================
+; Spindle WITHOUT a collet nut, just touching the top face of a module.
+; If your modules sit at different heights, mount them so they do not -
+; there is one reference for all of them.
+#<_atc_z_reference>   = 9999    ; SET ME - about -62 on the development machine
+
+; Pocket centre of each module, measured with the nut fitted.
+; Pocket numbers are the P column of the tool table: ATC modules are
+; 61 and up, manual tools 1-60. Leave unused modules at 9999.
+#<_atc_pocket_61_x>   = 9999    ; SET ME
+#<_atc_pocket_61_y>   = 9999    ; SET ME
+#<_atc_pocket_62_x>   = 9999    ; SET ME (if fitted)
+#<_atc_pocket_62_y>   = 9999
+#<_atc_pocket_63_x>   = 9999    ; SET ME (if fitted)
+#<_atc_pocket_63_y>   = 9999
+#<_atc_pocket_64_x>   = 9999    ; SET ME (if fitted)
+#<_atc_pocket_64_y>   = 9999
+#<_atc_pocket_65_x>   = 9999
+#<_atc_pocket_65_y>   = 9999
+#<_atc_pocket_66_x>   = 9999
+#<_atc_pocket_66_y>   = 9999
+
+
+; ================================
+; TRAVEL - SET ME
+; ================================
+#<_atc_z_safe>        = 0       ; Safe Z for all travel - normally machine Z0
+
+; Safe lane: a line the spindle travels along to reach the modules
+; without passing over any of them with a tool hanging below it.
+;   _atc_lane_axis = 0 : modules in a row along X; lane is a Y value
+;   _atc_lane_axis = 1 : modules in a row along Y; lane is an X value
+#<_atc_lane_axis>     = 0
+#<_atc_lane>          = 9999    ; SET ME - Y (or X) of the safe lane
+
+; Where the spindle goes for a MANUAL tool change (tools in pockets 1-60).
+#<_atc_manual_x>      = 9999    ; SET ME
+#<_atc_manual_y>      = 9999    ; SET ME
+#<_atc_manual_z>      = 0       ; Normally safe Z
+
+
+; ================================
+; OPTIONAL: TOOL PRESENCE SENSOR (through-beam, e.g. Autonics BUP-50)
+; ================================
+#<_atc_use_sensor>      = 0     ; 1 = check the spindle after every load/unload
+#<_atc_sensor_input>    = 0     ; motion.digital-in-NN the sensor is wired to (M66 P)
+#<_atc_beam_broken_val> = 1     ; Input value with the beam BROKEN - confirm in Halshow
+#<_atc_sensor_x>        = 9999  ; SET ME if used - approach X beside the beam
+#<_atc_beam_x>          = 9999  ; SET ME if used - X where the tool sits in the beam
+#<_atc_sensor_y>        = 9999  ; SET ME if used - sensor Y
+#<_atc_z_check>         = 9999  ; SET ME if used - Z where your SHORTEST tool breaks the beam
+
+
+; ================================
+; OPTIONAL: POWERED COVER
+; ================================
+#<_atc_use_cover>       = 0     ; 1 = open the cover with a digital output before ATC moves
+#<_atc_cover_output>    = 1     ; motion.digital-out-NN driving the cover (M64/M65 P)
+#<_atc_cover_time>      = 2.0   ; Seconds to wait for it to open
+#<_atc_check_cover>     = 0     ; 1 = confirm it opened, using the presence sensor input
+                                ;     (cover blocks the beam when closed)
+
+o<impactatc_m6_config> endsub

@@ -1,0 +1,55 @@
+; =====================================================================
+; impactatc_m6_load.ngc - ImpactATC TOOL LOADING, subroutine form
+; Controller: LinuxCNC          Part of the ImpactATC M6 integration
+;
+; Call:    o<impactatc_m6_load> call [pocket_x] [pocket_y]
+;
+; Same sequence and values as the standalone ../impactatc_tool_loading.ngc.
+; Machine values come from impactatc_m6_config.ngc - do not set them here.
+; The speeds, feeds and depths below are the production configuration;
+; see docs/parameters.md before changing any of them, and change the
+; standalone macro to match.
+; =====================================================================
+
+o<impactatc_m6_load> sub
+
+o100 if [[#<_atc_z_reference> EQ 9999] OR [#1 EQ 9999] OR [#2 EQ 9999]]
+    (ABORT, ATC ERROR: z_reference or pocket XY not set - see impactatc_m6_config.ngc)
+o100 endif
+
+; ---- Positions ----
+#<z_engage_offset> = 16         ; Start engagement this far above the reference
+#<z_engage>        = [#<_atc_z_reference> + #<z_engage_offset>]
+#<z_nut_thread>    = -31        ; INCREMENTAL plunge that threads the nut on
+
+; ---- Production parameters ----
+#<rpm_engage>      = 900        ; Low RPM while threading the nut on
+#<rpm_tighten>     = 1100       ; Final tightening speed -> approx 35 Nm
+                                ; (unload unscrews at 1250 ON PURPOSE - keep the margin)
+#<feed_slow_z>     = 1000       ; Z feed while engaging the nut (mm/min)
+#<feed_fast_z>     = 2400       ; Z feed for positioning moves (mm/min)
+#<dwell_tighten>   = 2.0        ; Time at tightening speed (seconds)
+#<dwell_stop>      = 1.0        ; Time for the spindle to come to rest
+
+G17 G90 G40 G49
+G53 G0 Z#<_atc_z_safe>
+G53 G0 X#1 Y#2                  ; Over the pocket (already there when called from M6)
+
+G53 G1 Z#<z_engage> F#<feed_fast_z> ; Descend to just above the nut
+
+G91                             ; ---- INCREMENTAL from here ----
+
+M3 S#<rpm_engage>               ; Spin CW (threading direction), slow
+G1 Z#<z_nut_thread> F#<feed_slow_z>  ; Lower to thread the nut on
+
+M3 S#<rpm_tighten>              ; Raise to tightening speed
+G4 P#<dwell_tighten>            ; Let the impact mechanism do its work
+
+M5                              ; Stop spindle
+G4 P#<dwell_stop>               ; Wait for it to actually stop
+
+G90                             ; ---- ABSOLUTE again ----
+
+G53 G0 Z#<_atc_z_safe>          ; Retract - tool now locked in the spindle
+
+o<impactatc_m6_load> endsub

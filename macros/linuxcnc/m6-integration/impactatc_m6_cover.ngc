@@ -1,0 +1,35 @@
+; =====================================================================
+; impactatc_m6_cover.ngc - open or close a powered ATC cover
+; Controller: LinuxCNC          Part of the ImpactATC M6 integration
+;
+; Call:    o<impactatc_m6_cover> call [1]   ; open  (waits, then optionally checks)
+;          o<impactatc_m6_cover> call [0]   ; close
+;
+; Does nothing when #<_atc_use_cover> = 0.
+;
+; The optional open-check reads the presence sensor input: an element on
+; the cover blocks the beam while the cover is closed, so a clear beam
+; means the cover has lifted. Call it with the spindle on the safe lane.
+; =====================================================================
+
+o<impactatc_m6_cover> sub
+
+o1 if [#<_atc_use_cover> EQ 0]
+    o<impactatc_m6_cover> return
+o1 endif
+
+o10 if [#1 EQ 1]
+    M64 P#<_atc_cover_output>   ; Open
+    G4 P#<_atc_cover_time>
+
+    o20 if [#<_atc_check_cover> EQ 1]
+        M66 P#<_atc_sensor_input> L0
+        o30 if [#5399 EQ #<_atc_beam_broken_val>]
+            (ABORT, ATC ERROR: ATC cover did not open)
+        o30 endif
+    o20 endif
+o10 else
+    M65 P#<_atc_cover_output>   ; Close
+o10 endif
+
+o<impactatc_m6_cover> endsub
