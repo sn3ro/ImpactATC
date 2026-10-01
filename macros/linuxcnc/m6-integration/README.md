@@ -4,8 +4,9 @@ An `M6` remap that changes tools automatically between ImpactATC modules, and by
 that does not live in a module.
 
 > **Status: for testing.** The sequence is the one used daily on the development machine, but this
-> generic package has not yet been through a validation campaign on hardware. Commission it with
-> the test sequence below, hand on the E-stop.
+> generic package has not yet been through a validation campaign on hardware. It has been run
+> through the LinuxCNC 2.9 interpreter in simulation — all four cases, the configuration guards,
+> and the sensor and cover options. Commission it with the test sequence below, hand on the E-stop.
 
 > **Do this last.** Only start here once the standalone macros in [`../`](../) load and unload
 > reliably on your machine. See [setup.md](../../../docs/setup.md#6-integrate).

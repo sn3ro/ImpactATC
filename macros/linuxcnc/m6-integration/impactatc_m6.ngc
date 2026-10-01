@@ -43,8 +43,12 @@ o2 if [#<cur_tool> EQ #<tool>]
     o<impactatc_m6> return [1]
 o2 endif
 
-#<cur_atc> = [#<cur_pocket> GT 60]
-#<new_atc> = [#<pocket> GT 60]
+; Tool 0 (empty spindle) is never an ATC tool. Classify it by tool number,
+; not pocket: on a non-random changer LinuxCNC reports the LOADED tool's
+; pocket as the "selected pocket" for T0, so T0 M6 would otherwise look
+; like a change within the same module.
+#<cur_atc> = [[#<cur_tool> NE 0] AND [#<cur_pocket> GT 60]]
+#<new_atc> = [[#<tool> NE 0] AND [#<pocket> GT 60]]
 
 ;(DEBUG, ATC: T#<cur_tool> P#<cur_pocket> -> T#<tool> P#<pocket>)
 
