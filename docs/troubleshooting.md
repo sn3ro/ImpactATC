@@ -79,8 +79,9 @@ it: the collet briefly lets go of the shank while the nut is being turned. Re-me
 after each automatic change rather than trusting a stored offset — most setups probe against a tool
 setter as part of the change sequence.
 
-It is most noticeable on tools larger than about 4 mm. To stop the tool moving, use sealed collets
-and, for larger tools, the printed TPU retention rings — see
+It happens during unloading, when the nut leaves the spindle thread and everything jerks downwards —
+most often with tools of about 4–8 mm. To stop it, use sealed collets and the printed TPU retention
+rings (the lower ring is the one that stops this) — see
 [Keeping the tool in the collet](tool-retention.md).
 
 ---

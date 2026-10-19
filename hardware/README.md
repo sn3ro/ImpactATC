@@ -49,8 +49,9 @@ holder and the spring beneath it, fit the new holder, and reassemble in reverse.
 
 ## Tool retention rings
 
-Thin TPU sleeves that stop the tool sliding in the collet while the nut is being screwed on or off.
-Fit one on each side of the collet. Why and how: [`docs/tool-retention.md`](../docs/tool-retention.md).
+Thin TPU sleeves that stop the tool sliding in the collet when the nut comes off during unloading.
+The lower ring stops 4–8 mm tools being pushed up into the collet; the upper ring stops larger tools
+falling out. Fit both where the tool allows it. Why and how: [`docs/tool-retention.md`](../docs/tool-retention.md).
 
 One file per shank size, 3–13 mm. Each ring is 5 mm tall with a 0.8 mm wall.
 
@@ -62,5 +63,6 @@ compensation.
 
 | Setting | Value |
 |---|---|
-| Material | **TPU** |
-| Quantity | Two per tool |
+| Material | Generic **TPU** (Sunlu TPU used in development) |
+| Profile | Bambu Studio standard settings for TPU |
+| Quantity | Two per tool (lower and upper) |

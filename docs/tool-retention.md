@@ -1,12 +1,15 @@
 # Keeping the tool in the collet
 
-During a change the collet nut is being screwed on or off while the spindle turns. For a moment the
-collet is not gripping the shank, and the tool can slide in it — down and out of the collet when
-unloading, or up into the spindle when the nut is threaded on. Over many cycles this shows up as the
-tool [creeping in the collet](troubleshooting.md#the-tool-creeps-up-in-the-collet).
+The problem happens while unloading. As the nut comes off the last of the spindle thread it lets go
+suddenly, and the nut, collet and tool jerk downwards. The collet is no longer gripping the shank at
+that moment, so the tool can move in it. Which way it goes depends on the tool:
 
-In practice it is a problem for tools **larger than about 4 mm**. Smaller tools are light enough
-that the collet's residual grip holds them.
+- **Tools of about 4–8 mm** tend to stay put while the collet drops, so they end up pushed **up into
+  the collet** (Z+). Over many cycles this shows up as the tool
+  [creeping in the collet](troubleshooting.md#the-tool-creeps-up-in-the-collet).
+- **Larger, heavier tools** tend to keep going and **fall out** of the collet (Z−).
+
+Tools under about 4 mm are light enough that the collet's remaining grip holds them.
 
 There are two fixes. Try the first one; add the second for the tools it does not hold.
 
@@ -25,14 +28,17 @@ retention rings below.
 
 ## 2. TPU retention rings
 
-A pair of thin printed TPU sleeves on the shank, one each side of the collet, trap the tool axially
-so it cannot move relative to the collet even while the collet is open. In use on the development
-machine they have held every tool tried, including the ones the sealed collets did not.
+Thin printed TPU sleeves on the shank, against the collet, stop the tool moving relative to the
+collet even while the collet is open. In use on the development machine they have held every tool
+tried, including the ones the sealed collets did not.
 
-| Ring | Where it goes | Stops the tool moving |
-|---|---|---|
-| Lower | On the shank just below the collet, inside the nut's front opening | Up into the spindle (Z+) |
-| Upper | On the end of the shank where it comes out of the back of the collet | Down out of the collet (Z−) |
+| Ring | Where it goes | Stops the tool moving | Needed for |
+|---|---|---|---|
+| Lower | On the shank just below the collet, inside the nut's front opening | Up into the collet (Z+) | Tools of about 4–8 mm |
+| Upper | On the end of the shank where it comes out of the back of the collet | Down out of the collet (Z−) | Larger, heavier tools |
+
+**To be certain, fit both** whenever the tool allows it. One pair of rings traps the tool in both
+directions, whichever way it wants to move.
 
 ![Lower ring, below the collet inside the nut](images/tool-retention-ring-below-nut.jpg)
 
@@ -40,11 +46,11 @@ machine they have held every tool tried, including the ones the sealed collets d
 
 ### Fitting
 
-1. Print two rings for the shank size (STEP files in
+1. Print the rings for the shank size — both if the tool allows it (STEP files in
    [`hardware/step/retention-rings/`](../hardware/step/retention-rings/), 3–13 mm).
-2. Slide the upper ring onto the end of the shank and push the shank into the collet until the ring
+2. Upper ring: slide it onto the end of the shank and push the shank into the collet until the ring
    sits against the back of the collet.
-3. Fit the lower ring onto the shank from the cutting end and push it up against the front of the
+3. Lower ring: fit it onto the shank from the cutting end and push it up against the front of the
    collet.
 4. Put the tool and collet into the nut as normal, then set the tool length.
 
