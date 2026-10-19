@@ -28,11 +28,12 @@ ImpactATC/
 │  └─ README.md       # Notes on usage and configuration
 │
 ├─ hardware/          # User-modifiable hardware components only
-│  ├─ step/           # Printable / reference CAD (e.g. ER20 nut holder)
+│  ├─ step/           # Printable / reference CAD (ER20 nut holder, tool retention rings)
 │  └─ README.md       # Scope, print settings and limitations
 │
 ├─ docs/              # Basic setup and integration guidance
-│  └─ setup.md        # Initial setup instructions
+│  ├─ setup.md        # Initial setup instructions
+│  └─ tool-retention.md # Stopping the tool sliding in the collet during a change
 │
 └─ README.md
 ```
@@ -57,6 +58,9 @@ This method provides improved performance over systems relying on friction or li
    materials and print settings (the ER20 nut holder is PETG, Strength profile, 100% infill)  
 3. Follow setup instructions in `docs/`  
 4. Integrate with your CNC controller  
+
+Using tools larger than about 4 mm? Read [`docs/tool-retention.md`](docs/tool-retention.md) — sealed
+collets and printed TPU rings stop the tool sliding in the collet while the nut is turned.
 
 ---
 

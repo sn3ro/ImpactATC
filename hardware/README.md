@@ -8,6 +8,7 @@ in the top-level [README](../README.md).
 | File | Part |
 |---|---|
 | `step/ImpactATC-ER20-Nut-holder.step` | ER20 nut holder |
+| `step/retention-rings/ImpactATC-Retention-ring-<n>mm.step` | TPU tool retention rings, 3–13 mm shanks |
 
 STEP is supplied rather than STL because slicers such as Bambu Studio and Orca open STEP directly,
 and it stays useful if you want to modify the part.
@@ -43,3 +44,23 @@ a standard or draft profile will not survive. Do not substitute PLA.
 
 Replacement is covered by the disassembly sequence: remove the top dust cover, lift out the old nut
 holder and the spring beneath it, fit the new holder, and reassemble in reverse.
+
+---
+
+## Tool retention rings
+
+Thin TPU sleeves that stop the tool sliding in the collet while the nut is being screwed on or off.
+Fit one on each side of the collet. Why and how: [`docs/tool-retention.md`](../docs/tool-retention.md).
+
+One file per shank size, 3–13 mm. Each ring is 5 mm tall with a 0.8 mm wall.
+
+The bore is deliberately **undersized** — 0.1 mm under the shank for 3–5 mm, 0.2 mm under for
+6–13 mm — so the ring is a tight push fit. Print it as it is; do not scale it or add hole
+compensation.
+
+### Print settings
+
+| Setting | Value |
+|---|---|
+| Material | **TPU** |
+| Quantity | Two per tool |

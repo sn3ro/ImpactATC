@@ -75,8 +75,13 @@ In order:
 Observed over many cycles: the tool gradually moves **towards Z+**, out of the collet.
 
 This is expected behaviour rather than a fault, and it is counter-intuitive the first time you see
-it. Re-measure tool length after each automatic change rather than trusting a stored offset — most
-setups probe against a tool setter as part of the change sequence.
+it: the collet briefly lets go of the shank while the nut is being turned. Re-measure tool length
+after each automatic change rather than trusting a stored offset — most setups probe against a tool
+setter as part of the change sequence.
+
+It is most noticeable on tools larger than about 4 mm. To stop the tool moving, use sealed collets
+and, for larger tools, the printed TPU retention rings — see
+[Keeping the tool in the collet](tool-retention.md).
 
 ---
 
