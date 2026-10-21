@@ -24,7 +24,7 @@ machine, and it is much cheaper to find a blocker now than after mounting.
 
 | Requirement | Why | Typical blocker |
 |---|---|---|
-| **ER20 collet nut** | The module is built around it | ER11/ER16/ER25 spindles need a different module |
+| **ER20 or ER16 hex collet nut** | The nut holder is made for one of them; choose it when you order | ER11/ER25 spindles, and mini (slim) nuts, are not supported |
 | **Spindle reverse (M4)** | Unloading unscrews counter-clockwise | Many router/VFD setups are wired CW-only. **Check this first** |
 | **Stable running at 300–1250 rpm** | The sequence uses 300, 900, 1100 and 1250 rpm | VFD minimum frequency set too high; controller minimum RPM setting |
 | **Reasonably brisk spindle accel/decel** | The sequence relies on reaching speed within the dwell | VFD ramp times of 10 s+ will not keep up — see [vfd-setup.md](vfd-setup.md) |

@@ -8,6 +8,8 @@ in the top-level [README](../README.md).
 | File | Part |
 |---|---|
 | `step/ImpactATC-ER20-Nut-holder.step` | ER20 nut holder |
+| `step/ImpactATC-ER16-Nut-holder.step` | ER16 nut holder (25 mm A/F hex nut) |
+| `src/nut_holder.py` | FreeCAD generator for the nut holders (`FreeCADCmd nut_holder.py ER16 out.step`) |
 | `step/retention-rings/ImpactATC-Retention-ring-<n>mm.step` | TPU tool retention rings, 3–13 mm shanks |
 
 STEP is supplied rather than STL because slicers such as Bambu Studio and Orca open STEP directly,
